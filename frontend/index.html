@@ -1,1 +1,56 @@
+<!DOCTYPE html>
+<html>
 
+<head>
+    <title>Portfolio Optimizer</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename = 'icons/favicon.ico')}}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+
+</head>
+
+<body>
+    <div class="header-container">
+        <div class="header-content">
+            <img src="{{ url_for('static', filename='images/s-l1200.jpg') }}" alt="Turtle">
+            <div class="header-text">
+                <h1>Portfolio Optimizer</h1>
+                <p> Welcome to my portfolio optimizer</p>
+            </div>
+        </div>
+    </div>
+
+
+    <br>
+    <label>Stock Ticker:</label>
+    <input id="stocktick"><br><br>
+    <button id="mySubmit">Submit</button>
+    <button id="myReset">Reset</button>
+    <button id="myAdd">Add</button>
+
+    <p id="textplaceholder"></p>
+    <div id="stockInfo" style="display: none;">
+        <h3 style="font-family: 'Monaco', monospace;">Stock Information:</h3>
+        <p>Name: <span id="stockName"></span></p>
+        <p>Current Price: <span id="stockPrice"></span></p>
+        <p> Market Cap: <span id="marketCap"></span></p>
+        <p>P/E Ratio: <span id="peRatio"></span></p>
+        <p>Volume: <span id="volume"></span></p>
+    </div>
+
+    <!-- Portfolio Section -->
+    <div id="portfoliosection">
+        <h3>Your Portfolio</h3>
+        <div id="portfolioList">
+            <!-- Stocks Here!!-->
+        </div>
+        <p id="emptyPortfolio" style="color: #808080; font-style:italic;">
+            No stocks in portfolio.
+        </p>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js')}}"></script>
+
+</body>
+
+</html>
