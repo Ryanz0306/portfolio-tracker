@@ -20,7 +20,7 @@
         </div>
     </div>
 
-
+    <!-- Stock Information -->
     <br>
     <label>Stock Ticker:</label>
     <input id="stocktick"><br><br>
@@ -28,29 +28,35 @@
     <button id="myReset">Reset</button>
     <button id="myAdd">Add</button>
 
+    <div id="errormessage"></div>
+
     <p id="textplaceholder"></p>
-    <div id="stockInfo" style="display: none;">
-        <h3 style="font-family: 'Monaco', monospace;">Stock Information:</h3>
+    <div id="stockInfo">
+        <h3 style="font-family: ''Monaco', monospace;'">Stock Information:</h3>
         <p>Name: <span id="stockName"></span></p>
         <p>Current Price: <span id="stockPrice"></span></p>
         <p> Market Cap: <span id="marketCap"></span></p>
         <p>P/E Ratio: <span id="peRatio"></span></p>
         <p>Volume: <span id="volume"></span></p>
+        <button onclick="getStockNews(document.getElementById('stocktick').value)" class=news-btn>View News</button>
     </div>
 
-    <!-- Portfolio Section -->
-    <div id="portfoliosection">
-        <h3>Your Portfolio</h3>
-        <div id="portfolioList">
-            <!-- Stocks Here!!-->
+    <!-- News Section -->
+    <div id="newsSection">
+        <h3 style="font-weight:bold">Current News for <span id="newsSymbol"></span></h3>
+        <div id="newsFeed">
+            <button onclick="hideNews()" class="close-btn">Close News</button>
         </div>
-        <p id="emptyPortfolio" style="color: #808080; font-style:italic;">
-            No stocks in portfolio.
-        </p>
     </div>
+    <!-- price graph-->
+    <div id="graphSection">
+        <div id="plotgraph"></div>
+    </div>
+
+
 
     <script src="{{ url_for('static', filename='js/app.js')}}"></script>
-
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
 </body>
 
 </html>
