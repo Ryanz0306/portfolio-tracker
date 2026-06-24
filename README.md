@@ -1,10 +1,12 @@
 # portfolio-tracker
-Basic web app to track portfolio statistics and experiment
+Basic flask application utilizing Markowitz portfolio theory, CAPM, and factor models to optimize portfolios 
 
 Basic features include:
-- Up to date information on stocks
+- Stock searcher & statistics
+- Markowitz Optimizer and custom weight recommendations
 - Portfolio statistics
 
 Future features include:
-- Recommendation
-- Portfolio Optimizer
+- Stock recommendation
+- Future/forward contract hedging 
+- alpha calculations
