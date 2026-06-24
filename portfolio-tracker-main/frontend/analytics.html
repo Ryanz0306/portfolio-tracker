@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Analytics</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13 7H6v10h7V7z M17 7v10m0-10h-4" />
+                </svg>
+                <span>Portfolio Optimizer</span>
+            </a>
+            <div class="nav-links">
+                <a href="/" class="nav-link">Dashboard</a>
+                <a href="/portfolio" class="nav-link">Portfolio</a>
+                <a href="/analytics" class="nav-link active">Analytics</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div style="display:flex;gap:1rem;align-items:flex-start;">
+            <section style="flex:1;">
+                <div class="chart-card">
+                    <h2>Per-Stock Analytics </h2>
+                    <div id="analyticsList" style="margin-top:1rem;"></div>
+                </div>
+            </section>
+
+            <aside style="width:420px;">
+                <div class="chart-card">
+                    <h2>Portfolio Analytics</h2>
+                    <div id="portfolioPanel" style="margin-top:1rem; font-size:0.95rem;"></div>
+                </div>
+            </aside>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; Mini project made by Ryan Z.</p>
+    </footer>
+
+    <script>
+        async function loadAnalytics() {
+            try {
+                const res = await fetch('/api/analytics');
+                const data = await res.json();
+                const list = document.getElementById('analyticsList');
+                list.innerHTML = '';
+                if (!data.success) {
+                    list.innerHTML = '<p style="color:var(--text-secondary);">Failed to load analytics.</p>';
+                    return;
+                }
+                const items = data.analytics || [];
+                if (!items.length) {
+                    list.innerHTML = '<p style="color:var(--text-secondary);">No portfolio items to analyze.</p>';
+                    return;
+                }
+
+                // create weight inputs (default equal-weighted)
+                const defaultWeight = (items.length > 0) ? (100 / items.length) : 0;
+                items.forEach(i => {
+                    const card = document.createElement('div');
+                    card.className = 'info-card';
+                    card.style.marginBottom = '0.75rem';
+
+                    if (i.error) {
+                        card.innerHTML = `<div><strong>${i.symbol}</strong> — Error: ${i.error}</div>`;
+                    } else {
+                        const weightVal = Number(defaultWeight).toFixed(2);
+                        card.innerHTML = `
+                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                                <div>
+                                    <strong style="font-size:1.05rem">${i.symbol}</strong>
+                                    <div style="color:var(--text-secondary)">points: ${i.points}</div>
+                                </div>
+                                <div style="text-align:right; min-width:320px;">
+                                    <div>Latest: <strong>$${Number(i.latest).toFixed(2)}</strong></div>
+                                    <div>Mean: ${Number(i.mean).toFixed(2)} | Std: ${Number(i.std).toFixed(2)} | Var: ${Number(i.var).toFixed(2)}</div>
+                                    <div>Min: ${Number(i.min).toFixed(2)} | Max: ${Number(i.max).toFixed(2)} | Median: ${Number(i.median).toFixed(2)}</div>
+                                    <div>1y Change: ${i.pct_change_percent !== null ? Number(i.pct_change_percent).toFixed(2) + '%' : 'N/A'}</div>
+                                    <div style="margin-top:8px;display:flex;gap:8px;align-items:center;justify-content:flex-end">
+                                        <label style="font-size:0.9rem;color:var(--text-secondary);margin-right:6px">Weight %</label>
+                                        <input class="weight-input" data-symbol="${i.symbol}" type="number" min="0" max="100" step="0.01" value="${weightVal}" style="width:90px;padding:6px;border:1px solid #ddd;border-radius:4px;text-align:right" />
+                                    </div>
+                                </div>
+                            </div>`;
+                    }
+                    list.appendChild(card);
+                });
+
+                // weights summary display
+                const topSummary = document.createElement('div');
+                topSummary.id = 'weightsSummary';
+                topSummary.style.margin = '8px 0 12px 0';
+                topSummary.style.fontSize = '0.95rem';
+                topSummary.innerHTML = `Total weights: <strong id="weightsTotal"></strong>`;
+                list.parentNode.insertBefore(topSummary, list);
+
+                // weight input handling
+                function updateWeightsDisplay() {
+                    const inputs = Array.from(document.querySelectorAll('.weight-input'));
+                    const total = inputs.reduce((acc, el) => acc + (parseFloat(el.value) || 0), 0);
+                    document.getElementById('weightsTotal').innerText = total.toFixed(2) + '%';
+                }
+
+                // ensure sum does not exceed 100% by capping the changed input
+                document.querySelectorAll('.weight-input').forEach(inp => {
+                    inp.dataset.prev = inp.value;
+                    inp.addEventListener('input', (e) => {
+                        const target = e.target;
+                        const inputs = Array.from(document.querySelectorAll('.weight-input'));
+                        const currentTotal = inputs.reduce((acc, el) => acc + (parseFloat(el.value) || 0), 0);
+                        if (currentTotal > 100) {
+                            const overflow = currentTotal - 100;
+                            const newVal = Math.max(0, (parseFloat(target.value) || 0) - overflow);
+                            target.value = newVal.toFixed(2);
+                        }
+                        // update prev and display
+                        target.dataset.prev = target.value;
+                        updateWeightsDisplay();
+                    });
+                    inp.addEventListener('blur', (e) => {
+                        // normalize tiny floating rounding to 2 decimals
+                        const v = parseFloat(e.target.value) || 0;
+                        e.target.value = v.toFixed(2);
+                        updateWeightsDisplay();
+                    });
+                });
+
+                // initial weights display
+                updateWeightsDisplay();
+
+                // load portfolio metrics (beta, sharpe, treynor)
+                try {
+                    const res2 = await fetch('/api/analytics/portfolio_cov');
+                    const covData = await res2.json();
+                    const panel = document.getElementById('portfolioPanel');
+                    panel.innerHTML = '';
+                    if (!covData.success) {
+                        panel.innerHTML = `<p style="color:var(--text-secondary);">${covData.error || 'Failed to load portfolio analytics'}</p>`;
+                    } else {
+                        const beta = covData.portfolio_beta;
+                        const sharpe = covData.sharpe_annual;
+                        const treynor = covData.treynor_annual;
+                        const mean = covData.portfolio_mean_annual;
+                        const std = covData.portfolio_std_annual;
+                        const controls = document.createElement('div');
+                        controls.style.marginBottom = '8px';
+                        controls.innerHTML = `
+                            <label style="display:block;margin-bottom:6px">Risk-free rate (annual %, e.g. 1.5)</label>
+                            <div style="display:flex;gap:8px;align-items:center">
+                                <input id="rfInput" type="number" step="0.01" value="0.00" style="flex:1;padding:6px;border:1px solid #ddd;border-radius:4px" />
+                            </div>
+                        `;
+                        panel.appendChild(controls);
+
+                        // Optimization section
+                        const optimDiv = document.createElement('div');
+                        optimDiv.style.marginTop = '12px';
+                        optimDiv.innerHTML = `
+                            <h4 style="margin:6px 0">Portfolio Optimization</h4>
+                            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+                                <select id="optMethod" style="flex:1;padding:6px;border:1px solid #ddd;border-radius:4px">
+                                    <option value="markowitz">Markowitz (Max Sharpe)</option>
+                                    <option value="factor" disabled>Factor Model (coming soon)</option>
+                                </select>
+                                <button id="runOptimize" class="btn" style="padding:6px 10px;height:36px">Run</button>
+                            </div>
+                        `;
+                        panel.appendChild(optimDiv);
+
+                        const summary = document.createElement('div');
+                        summary.id = 'portfolioSummary';
+                        summary.style.marginTop = '8px';
+                        panel.appendChild(summary);
+
+                        function renderSummary(beta, sharpe, treynor, mean, std, rf) {
+                            const el = document.getElementById('portfolioSummary');
+                            el.innerHTML = `
+                                <div style="margin-bottom:8px">Portfolio Beta (vs S&P 500): <strong>${beta !== null ? Number(beta).toFixed(3) : 'N/A'}</strong></div>
+                                <div style="margin-bottom:8px">Portfolio expected return (annualized): <strong>${(mean * 100).toFixed(2)}%</strong></div>
+                                <div style="margin-bottom:8px">Portfolio standard deviation (annualized): <strong>${(std * 100).toFixed(2)}%</strong></div>
+                                <div style="margin-bottom:8px">Sharpe Ratio (annual, rf=${rf}%): <strong>${sharpe !== null ? Number(sharpe).toFixed(3) : 'N/A'}</strong></div>
+                                <div style="margin-bottom:8px">Treynor Ratio (annual, rf=${rf}%): <strong>${treynor !== null ? Number(treynor).toFixed(3) : 'N/A'}</strong></div>
+                            `;
+                        }
+
+                        // initial render
+                        renderSummary(beta, sharpe, treynor, mean, std, 0.00);
+
+                        // create bottom Apply button that applies weights + RF
+                        const applyWrap = document.createElement('div');
+                        applyWrap.style.marginTop = '12px';
+                        applyWrap.style.display = 'flex';
+                        applyWrap.style.justifyContent = 'flex-end';
+                        const applyBtn = document.createElement('button');
+                        applyBtn.id = 'applyAll';
+                        applyBtn.className = 'btn btn-primary';
+                        applyBtn.textContent = 'Apply';
+                        applyBtn.style.padding = '6px 10px';
+                        applyBtn.style.fontSize = '0.95rem';
+                        applyBtn.style.height = '36px';
+                        applyWrap.appendChild(applyBtn);
+                        panel.appendChild(applyWrap);
+
+                        // Run optimization and apply weights
+                        document.getElementById('runOptimize').addEventListener('click', async () => {
+                            const method = document.getElementById('optMethod').value;
+                            const rfVal = parseFloat(document.getElementById('rfInput').value) || 0.0;
+                            try {
+                                const r = await fetch(`/api/analytics/optimize?method=${encodeURIComponent(method)}&rf=${encodeURIComponent(rfVal)}`);
+                                const j = await r.json();
+                                if (!j.success) {
+                                    alert(j.error || 'Optimization failed');
+                                    return;
+                                }
+                                const weights = j.weights || [];
+                                const inputs = Array.from(document.querySelectorAll('.weight-input'));
+                                if (weights.length === inputs.length) {
+                                    // set each input and correct rounding so total==100
+                                    let sum = 0;
+                                    for (let idx = 0; idx < inputs.length; idx++) {
+                                        const v = Number(weights[idx]) || 0;
+                                        inputs[idx].value = v.toFixed(2);
+                                        sum += parseFloat(inputs[idx].value);
+                                    }
+                                    // fix rounding drift by adjusting last input
+                                    const diff = 100 - sum;
+                                    if (Math.abs(diff) >= 0.01) {
+                                        const last = inputs[inputs.length - 1];
+                                        last.value = (parseFloat(last.value) + diff).toFixed(2);
+                                    }
+                                    updateWeightsDisplay();
+                                    // apply optimized weights
+                                    document.getElementById('applyAll').click();
+                                } else {
+                                    alert('Optimization returned unexpected weights');
+                                }
+                            } catch (err) {
+                                console.error(err);
+                                alert('Error running optimization');
+                            }
+                        });
+
+                        document.getElementById('applyAll').addEventListener('click', async () => {
+                            // gather RF and weights
+                            const rfVal = parseFloat(document.getElementById('rfInput').value) || 0.0;
+                            const inputs = Array.from(document.querySelectorAll('.weight-input'));
+                            const weights = inputs.map(i => parseFloat(i.value) || 0);
+                            const total = weights.reduce((a, b) => a + b, 0);
+                            if (Math.abs(total - 100) > 0.01) {
+                                alert('Total weights must add up to 100%. Please adjust the weights.');
+                                return;
+                            }
+                            const weightsCsv = weights.join(',');
+                            try {
+                                const r2 = await fetch(`/api/analytics/portfolio_cov?rf=${encodeURIComponent(rfVal)}&weights=${encodeURIComponent(weightsCsv)}`);
+                                const newData = await r2.json();
+                                if (!newData.success) {
+                                    alert(newData.error || 'Failed to load metrics');
+                                    return;
+                                }
+                                renderSummary(newData.portfolio_beta, newData.sharpe_annual, newData.treynor_annual, newData.portfolio_mean_annual, newData.portfolio_std_annual, rfVal.toFixed(2));
+                            } catch (err) {
+                                console.error(err);
+                                alert('Error fetching metrics');
+                            }
+                        });
+                        // immediately apply current weights/RF so summary reflects inputs
+                        document.getElementById('applyAll').click();
+                    }
+                } catch (err) {
+                    console.error(err);
+                }
+
+            } catch (err) {
+                console.error(err);
+                document.getElementById('analyticsList').innerHTML = '<p style="color:var(--text-secondary);">Failed to load analytics.</p>';
+            }
+        }
+        document.addEventListener('DOMContentLoaded', loadAnalytics);
+    </script>
+</body>
+
+</html>

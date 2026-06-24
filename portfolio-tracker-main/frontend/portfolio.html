@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13 7H6v10h7V7z M17 7v10m0-10h-4" />
+                </svg>
+                <span>Portfolio Optimizer</span>
+            </a>
+            <div class="nav-links">
+                <a href="/" class="nav-link">Dashboard</a>
+                <a href="/portfolio" class="nav-link active">Portfolio</a>
+                <a href="/analytics" class="nav-link">Analytics</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <section class="chart-section">
+            <div class="chart-card">
+                <h2>Your Portfolio</h2>
+                <div id="portfolioList" style="margin-top:1rem;"></div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; Mini project made by Ryan Z.</p>
+    </footer>
+
+    <script>
+        // Simplified static portfolio renderer with remove buttons (no drag-and-drop)
+        async function loadPortfolio() {
+            try {
+                const res = await fetch('/api/portfolio');
+                const data = await res.json();
+                const list = document.getElementById('portfolioList');
+                list.innerHTML = '';
+
+                if (data.success && Array.isArray(data.portfolio) && data.portfolio.length) {
+                    data.portfolio.forEach(item => {
+                        const el = document.createElement('div');
+                        el.className = 'info-card';
+                        el.style.marginBottom = '0.75rem';
+                        el.dataset.symbol = (item.symbol || '').toUpperCase();
+
+                        el.innerHTML = `
+                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                                <div>
+                                    <strong style="font-size:1.1rem">${item.symbol}</strong>
+                                    <div style="color:var(--text-secondary)">${item.name || ''}</div>
+                                </div>
+                                <div style="text-align:right">
+                                    <div style="font-weight:700">${item.price !== null && item.price !== undefined ? '$' + Number(item.price).toFixed(2) : '-'}</div>
+                                    <div style="color:var(--text-secondary);font-size:0.85rem">Added ${new Date(item.added_at).toLocaleString()}</div>
+                                </div>
+                                <div style="margin-left:8px;">
+                                    <button class="btn btn-close remove-btn" data-symbol="${item.symbol}">✕</button>
+                                </div>
+                            </div>`;
+
+                        list.appendChild(el);
+                    });
+
+                    // attach remove handlers
+                    list.querySelectorAll('.remove-btn').forEach(btn => {
+                        btn.addEventListener('click', async () => {
+                            const symbol = (btn.dataset.symbol || '').toUpperCase();
+                            if (!symbol) return;
+                            if (!confirm(`Remove ${symbol} from portfolio?`)) return;
+                            try {
+                                const resp = await fetch('/api/portfolio/remove', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ symbol })
+                                });
+                                const json = await resp.json();
+                                if (json.success) {
+                                    // reload list
+                                    loadPortfolio();
+                                } else {
+                                    alert(json.error || 'Failed to remove');
+                                }
+                            } catch (err) {
+                                console.error(err);
+                                alert('Error removing');
+                            }
+                        });
+                    });
+                } else {
+                    list.innerHTML = '<p style="color:var(--text-secondary);">This list is empty! Add some stocks to begin.</p>';
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('portfolioList').innerHTML = '<p style="color:var(--text-secondary);">Failed to load portfolio.</p>';
+            }
+        }
+
+        // Run on load
+        document.addEventListener('DOMContentLoaded', loadPortfolio);
+    </script>
+</body>
+
+</html>

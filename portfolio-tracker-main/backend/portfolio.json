@@ -1,0 +1,20 @@
+[
+  {
+    "symbol": "AAPL",
+    "name": "Apple Inc.",
+    "price": 294.3,
+    "added_at": "2026-06-24T15:24:12.155379"
+  },
+  {
+    "symbol": "GOOGL",
+    "name": "Alphabet Inc.",
+    "price": 346.13,
+    "added_at": "2026-06-24T15:25:57.387002"
+  },
+  {
+    "symbol": "NVDA",
+    "name": "NVIDIA Corporation",
+    "price": 200.04,
+    "added_at": "2026-06-24T15:31:29.190863"
+  }
+]
